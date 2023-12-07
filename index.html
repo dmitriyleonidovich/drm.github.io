@@ -61,7 +61,7 @@
             </tr>
         </table>
 
-        <h1> KOSTYA PRIVET ! v2 </h1>
+        <h1> KOSTYA PRIVET ! v3 </h1>
 
         <script>
             function checkDRMSupport() {
@@ -121,6 +121,7 @@
                     try {
                     const access = await navigator.requestMediaKeySystemAccess(keySystem, mediaConfig);
                     const types = access.getConfiguration().sessionTypes;
+                    await access.createMediaKeys();
                     return ({
                             keySystem: keySystem,
                             initDataType: mediaConfig[1].initDataTypes[0],
