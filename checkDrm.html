@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Check DRM initDataTypes Support</title>
+        <style>
+            table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+
+            table,
+            th,
+            td {
+                border: 1px solid black;
+            }
+
+            th,
+            td {
+                padding: 8px;
+                text-align: left;
+            }
+
+            th {
+                background-color: #f2f2f2;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Check DRM initDataTypes Support</h1>
+
+        <div>
+            <label for="audioContentType">Audio Content Type:</label>
+            <input
+                type="text"
+                id="audioContentType"
+                placeholder='audio/mp4; codecs="mp4a.40.2"'
+                style="width: 20%"
+            />
+
+            <label for="videoContentType">Video Content Type:</label>
+            <input
+                type="text"
+                id="videoContentType"
+                placeholder='video/mp4; codecs="avc1.42E01E"'
+                style="width: 20%"
+            />
+
+            <button onclick="checkDRMSupport()">Проверить</button>
+            <button onclick="clearDRMSupport()">Очистить</button>
+        </div>
+
+        <table id="results">
+            <tr>
+                <th>Key System</th>
+                <th>initDataType</th>
+                <th>Supported</th>
+                <th>Error</th>
+            </tr>
+        </table>
+
+        <script>
+            function checkDRMSupport() {
+                document.getElementById('results').innerHTML =
+                    '<tr><th>Key System</th><th>initDataType</th><th>Supported</th><th>Error</th></tr>'; // Почистим
+
+                const audioContentType =
+                    document.getElementById('audioContentType').value ||
+                    'audio/mp4; codecs="mp4a.40.2"';
+                const videoContentType =
+                    document.getElementById('videoContentType').value ||
+                    'video/mp4; codecs="avc1.42E01E"';
+                const keySystems = [
+                    'com.widevine.alpha',
+                    'com.microsoft.playready',
+                    'org.w3.clearkey',
+                    'com.apple.fps', // Modern
+                    /** Старьё - не факт что вообще можно проверять таким образом */
+                    'com.apple.fps_1_0',
+                    'com.apple.fps_2_0',
+                ];
+                const initDataTypes = ['cenc', 'keyids', 'webkitkeyids', 'cbcs'];
+
+                const mediaConfigs = initDataTypes.map((initDataType) => ({
+                    initDataTypes: [initDataType],
+                    audioCapabilities: [{ contentType: audioContentType }],
+                    videoCapabilities: [{ contentType: videoContentType }],
+                }));
+
+                // Последовательно проверяем каждую keySystem
+                keySystems.reduce((promiseChain, keySystem) => {
+                    return promiseChain
+                        .then(() => {
+                            return checkKeySystemSupport(keySystem, mediaConfigs);
+                        })
+                        .then((results) => {
+                            results.forEach((result) => {
+                                updateTable(
+                                    result.keySystem,
+                                    result.initDataType,
+                                    result.supported,
+                                    result.error,
+                                );
+                            });
+                        });
+                }, Promise.resolve());
+            }
+            // Функция для проверки поддержки для конкретной keySystem
+            function checkKeySystemSupport(keySystem, mediaConfigs) {
+                const promises = mediaConfigs.map((mediaConfig) => {
+                    return navigator
+                        .requestMediaKeySystemAccess(keySystem, [mediaConfig])
+                        .then(() => ({
+                            keySystem: keySystem,
+                            initDataType: mediaConfig.initDataTypes[0],
+                            supported: true,
+                        }))
+                        .catch((error) => ({
+                            keySystem: keySystem,
+                            initDataType: mediaConfig.initDataTypes[0],
+                            supported: false,
+                            error,
+                        }));
+                });
+
+                return Promise.all(promises);
+            }
+
+            function clearDRMSupport() {
+                document.getElementById('audioContentType').value = '';
+                document.getElementById('videoContentType').value = '';
+            }
+
+            document.addEventListener('DOMContentLoaded', checkDRMSupport);
+
+            function updateTable(keySystem, initDataType, supported, error) {
+                const table = document.getElementById('results');
+                const row = table.insertRow(-1);
+                const keySystemCell = row.insertCell(0);
+                const initDataTypeCell = row.insertCell(1);
+                const supportedCell = row.insertCell(2);
+                const errorCell = row.insertCell(3);
+                keySystemCell.textContent = keySystem;
+                initDataTypeCell.textContent = initDataType;
+                const supportedText = supported ? 'Yes' : 'No';
+                supportedCell.textContent = supportedText;
+                const errorText = error || '';
+                errorCell.textContent = error ?? '';
+
+                if (!supported) {
+                    console.error(`${keySystem}: ${initDataType}: ${supportedText}. ${errorText}`)
+                } else {
+                    console.log(`${keySystem}: ${initDataType}: ${supportedText}.`);
+                }
+            }
+        </script>
+    </body>
+</html>
