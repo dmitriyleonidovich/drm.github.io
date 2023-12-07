@@ -84,8 +84,8 @@
 
                 const mediaConfigs = initDataTypes.map((initDataType) => ({
                     initDataTypes: [initDataType],
-                    audioCapabilities: [{ contentType: audioContentType }],
-                    videoCapabilities: [{ contentType: videoContentType }],
+                    // audioCapabilities: [{ contentType: audioContentType }],
+                    videoCapabilities: [{ contentType: videoContentType }, { contentType: 'video/webm; codecs="vp8"' }],
                 }));
 
                 // Последовательно проверяем каждую keySystem
