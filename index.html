@@ -56,14 +56,17 @@
                 <th>Key System</th>
                 <th>initDataType</th>
                 <th>Supported</th>
+                <th>Types</th>
                 <th>Error</th>
             </tr>
         </table>
 
+        <h1> KOSTYA PRIVET ! </h1>
+
         <script>
             function checkDRMSupport() {
                 document.getElementById('results').innerHTML =
-                    '<tr><th>Key System</th><th>initDataType</th><th>Supported</th><th>Error</th></tr>'; // Почистим
+                    '<tr><th>Key System</th><th>initDataType</th><th>Supported</th><th>Types</th><th>Error</th></tr>'; // Почистим
 
                 const audioContentType =
                     document.getElementById('audioContentType').value ||
@@ -82,15 +85,17 @@
                 ];
                 const initDataTypes = ['cenc', 'keyids', 'webkitkeyids', 'cbcs'];
 
-                const mediaConfigs = initDataTypes.map((initDataType) => ([{
-                    initDataTypes: [initDataType],
-                    // audioCapabilities: [{ contentType: audioContentType }],
-                    videoCapabilities: [{ contentType: videoContentType }],
-                }, {
+                const mediaConfigs = initDataTypes.map((initDataType) => ([
+                    {
                     videoCapabilities: [{ contentType: videoContentType }],
                     persistentState: 'required',
                     sessionTypes: ['persistent-license']
-                } ]));
+                },
+                    {
+                    initDataTypes: [initDataType],
+                    // audioCapabilities: [{ contentType: audioContentType }],
+                    videoCapabilities: [{ contentType: videoContentType }],
+                }, ]));
                 // Последовательно проверяем каждую keySystem
                 keySystems.reduce((promiseChain, keySystem) => {
                     return promiseChain
@@ -103,6 +108,7 @@
                                     result.keySystem,
                                     result.initDataType,
                                     result.supported,
+                                    result.types,
                                     result.error,
                                 );
                             });
@@ -114,14 +120,17 @@
                 const promises = mediaConfigs.map((mediaConfig) => {
                     return navigator
                         .requestMediaKeySystemAccess(keySystem, mediaConfig)
-                        .then(() => ({
+                        .then((acess) => {
+                            return {
                             keySystem: keySystem,
-                            initDataType: mediaConfig[0].initDataTypes[0],
+                            initDataType: mediaConfig[1].initDataTypes[0],
                             supported: true,
-                        }))
+                            types: access.getConfiguration().sessionTypes;
+                            }
+                        })
                         .catch((error) => ({
                             keySystem: keySystem,
-                            initDataType: mediaConfig[0].initDataTypes[0],
+                            initDataType: mediaConfig[1].initDataTypes[0],
                             supported: false,
                             error,
                         }));
@@ -137,19 +146,21 @@
 
             document.addEventListener('DOMContentLoaded', checkDRMSupport);
 
-            function updateTable(keySystem, initDataType, supported, error) {
+            function updateTable(keySystem, initDataType, supported, types, error) {
                 const table = document.getElementById('results');
                 const row = table.insertRow(-1);
                 const keySystemCell = row.insertCell(0);
                 const initDataTypeCell = row.insertCell(1);
                 const supportedCell = row.insertCell(2);
-                const errorCell = row.insertCell(3);
+                const typesCell = row.insertCell(3);
+                const errorCell = row.insertCell(4);
                 keySystemCell.textContent = keySystem;
                 initDataTypeCell.textContent = initDataType;
                 const supportedText = supported ? 'Yes' : 'No';
                 supportedCell.textContent = supportedText;
                 const errorText = error || '';
                 errorCell.textContent = error ?? '';
+                typesCell.textContent = types.join(' ,');
 
                 if (!supported) {
                     console.error(`${keySystem}: ${initDataType}: ${supportedText}. ${errorText}`)
