@@ -160,7 +160,7 @@
                 supportedCell.textContent = supportedText;
                 const errorText = error || '';
                 errorCell.textContent = error ?? '';
-                typesCell.textContent = types.join(' ,');
+                typesCell.textContent = Array.isArray(types) ? types.join(' ,') : types;
 
                 if (!supported) {
                     console.error(`${keySystem}: ${initDataType}: ${supportedText}. ${errorText}`)
