@@ -116,12 +116,12 @@
                         .requestMediaKeySystemAccess(keySystem, mediaConfig)
                         .then(() => ({
                             keySystem: keySystem,
-                            initDataType: mediaConfig.initDataTypes[0],
+                            initDataType: mediaConfig[0].initDataTypes[0],
                             supported: true,
                         }))
                         .catch((error) => ({
                             keySystem: keySystem,
-                            initDataType: mediaConfig.initDataTypes[0],
+                            initDataType: mediaConfig[0].initDataTypes[0],
                             supported: false,
                             error,
                         }));
