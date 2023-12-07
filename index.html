@@ -82,12 +82,15 @@
                 ];
                 const initDataTypes = ['cenc', 'keyids', 'webkitkeyids', 'cbcs'];
 
-                const mediaConfigs = initDataTypes.map((initDataType) => ({
+                const mediaConfigs = initDataTypes.map((initDataType) => ([{
                     initDataTypes: [initDataType],
                     // audioCapabilities: [{ contentType: audioContentType }],
-                    videoCapabilities: [{ contentType: videoContentType }, { contentType: 'video/webm; codecs="vp8"' }],
-                }));
-
+                    videoCapabilities: [{ contentType: videoContentType }],
+                }, {
+                    videoCapabilities: [{ contentType: videoContentType }],
+                    persistentState: 'required',
+                    sessionTypes: ['persistent-license']
+                } ]));
                 // Последовательно проверяем каждую keySystem
                 keySystems.reduce((promiseChain, keySystem) => {
                     return promiseChain
@@ -110,7 +113,7 @@
             function checkKeySystemSupport(keySystem, mediaConfigs) {
                 const promises = mediaConfigs.map((mediaConfig) => {
                     return navigator
-                        .requestMediaKeySystemAccess(keySystem, [mediaConfig])
+                        .requestMediaKeySystemAccess(keySystem, mediaConfig)
                         .then(() => ({
                             keySystem: keySystem,
                             initDataType: mediaConfig.initDataTypes[0],
