@@ -117,23 +117,25 @@
             }
             // Функция для проверки поддержки для конкретной keySystem
             function checkKeySystemSupport(keySystem, mediaConfigs) {
-                const promises = mediaConfigs.map((mediaConfig) => {
-                    return navigator
-                        .requestMediaKeySystemAccess(keySystem, mediaConfig)
-                        .then((acсess) => {
-                            return {
+                const promises = mediaConfigs.map(async (mediaConfig) => {
+                    try {
+                    const access = await navigator.requestMediaKeySystemAccess(keySystem, mediaConfig);
+                    const types = access.getConfiguration().sessionTypes;
+                    return ({
                             keySystem: keySystem,
                             initDataType: mediaConfig[1].initDataTypes[0],
                             supported: true,
-                            types: access.getConfiguration().sessionTypes
-                            }
-                        })
-                        .catch((error) => ({
+                            types
+                            });
+                    } catch (error) { 
+                        return ({
                             keySystem: keySystem,
                             initDataType: mediaConfig[1].initDataTypes[0],
                             supported: false,
+                            types: '',
                             error,
-                        }));
+                        })
+                    }
                 });
 
                 return Promise.all(promises);
