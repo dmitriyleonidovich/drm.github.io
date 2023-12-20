@@ -29,11 +29,12 @@
     </head>
     <body>
         <h1>Check Widevine [cenc] DRM Support</h1>
-
         <table id="results">
             <tr>
                 <th>Key System</th>
                 <th>initDataType</th>
+                <th>audioContentType</th>
+                <th>videoContentType</th>
                 <th>Supported</th>
                 <th>Failed Method</th>
                 <th>Error</th>
@@ -43,7 +44,7 @@
         <script>
             function checkWidevineCencDrmSupport() {
                 document.getElementById('results').innerHTML =
-                    '<tr><th>Key System</th><th>initDataType</th><th>Supported</th><th>Failed Method</th><th>Error</th></tr>'; // Clean
+                    '<tr><th>Key System</th><th>initDataType</th><th>audioContentType</th><th>videoContentType</th><th>Supported</th><th>Failed Method</th><th>Error</th></tr>'; // Clean
 
                 const audioContentType = 'audio/mp4; codecs="mp4a.40.2"';
                 const videoContentType = 'video/mp4; codecs="avc1.42E01E"';
@@ -57,7 +58,7 @@
                 }
 
                 checkKeySystemSupport(keySystem, mediaConfig).then(({ supported, error, method }) => {
-                    updateTable(keySystem, initDataType, supported, error, method);
+                    updateTable({ keySystem, initDataType, audioContentType, videoContentType }, supported, error, method);
                 })
             }
 
@@ -93,22 +94,35 @@
             document.addEventListener('DOMContentLoaded', checkWidevineCencDrmSupport);
 
             // render result
-            function updateTable(keySystem, initDataType, supported, error, method) {
+            function updateTable({ keySystem, initDataType, audioContentType, videoContentType }, supported, error, method) {
                 const table = document.getElementById('results');
                 const row = table.insertRow(-1);
+
                 const keySystemCell = row.insertCell(0);
-                const initDataTypeCell = row.insertCell(1);
-                const supportedCell = row.insertCell(2);
-                const methodCell = row.insertCell(3);
-                const errorCell = row.insertCell(4);
                 keySystemCell.textContent = keySystem;
+
+                const initDataTypeCell = row.insertCell(1);
                 initDataTypeCell.textContent = initDataType;
+
+                const audioTypeCell = row.insertCell(2);
+                audioTypeCell.textContent = audioContentType;
+
+                const videoTypeCell = row.insertCell(3);
+                videoTypeCell.textContent = videoContentType;
+
+                const supportedCell = row.insertCell(4);
                 const supportedText = supported ? 'Yes' : 'No';
                 supportedCell.textContent = supportedText;
-                const errorText = error || '';
-                errorCell.textContent = error || '-';
+
+
+                const methodCell = row.insertCell(5);
                 methodCell.textContent = method || '-';
 
+                const errorCell = row.insertCell(6);
+                const errorText = error || '';
+                errorCell.textContent = error || '-';
+                
+                
                 if (!supported) {
                     console.error(`${keySystem}: ${initDataType}: ${supportedText}. ${errorText}`)
                 } else {
