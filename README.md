@@ -1,2 +1,3 @@
 # drm.github.io
-Check DRM initDataTypes Support
+Check Widevine [cenc] DRM Support
+
