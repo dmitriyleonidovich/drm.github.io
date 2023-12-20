@@ -28,142 +28,86 @@
         </style>
     </head>
     <body>
-        <h1>Check DRM initDataTypes Support</h1>
-
-        <div>
-            <label for="audioContentType">Audio Content Type:</label>
-            <input
-                type="text"
-                id="audioContentType"
-                placeholder='audio/mp4; codecs="mp4a.40.2"'
-                style="width: 20%"
-            />
-
-            <label for="videoContentType">Video Content Type:</label>
-            <input
-                type="text"
-                id="videoContentType"
-                placeholder='video/mp4; codecs="avc1.42E01E"'
-                style="width: 20%"
-            />
-
-            <button onclick="checkDRMSupport()">Проверить</button>
-            <button onclick="clearDRMSupport()">Очистить</button>
-        </div>
+        <h1>Check Widevine [cenc] DRM Support</h1>
 
         <table id="results">
             <tr>
                 <th>Key System</th>
                 <th>initDataType</th>
                 <th>Supported</th>
-                <th>Types</th>
+                <th>Failed Method</th>
                 <th>Error</th>
             </tr>
         </table>
 
-        <h1> KOSTYA PRIVET ! v3 </h1>
-
         <script>
-            function checkDRMSupport() {
+            function checkWidevineCencDrmSupport() {
                 document.getElementById('results').innerHTML =
-                    '<tr><th>Key System</th><th>initDataType</th><th>Supported</th><th>Types</th><th>Error</th></tr>'; // Почистим
+                    '<tr><th>Key System</th><th>initDataType</th><th>Supported</th><th>Failed Method</th><th>Error</th></tr>'; // Clean
 
-                const audioContentType =
-                    document.getElementById('audioContentType').value ||
-                    'audio/mp4; codecs="mp4a.40.2"';
-                const videoContentType =
-                    document.getElementById('videoContentType').value ||
-                    'video/mp4; codecs="avc1.42E01E"';
-                const keySystems = [
-                    'com.widevine.alpha',
-                    'com.microsoft.playready',
-                    'org.w3.clearkey',
-                    'com.apple.fps', // Modern
-                    /** Старьё - не факт что вообще можно проверять таким образом */
-                    'com.apple.fps_1_0',
-                    'com.apple.fps_2_0',
-                ];
-                const initDataTypes = ['cenc', 'keyids', 'webkitkeyids', 'cbcs'];
+                const audioContentType = 'audio/mp4; codecs="mp4a.40.2"';
+                const videoContentType = 'video/mp4; codecs="avc1.42E01E"';
+                const keySystem = 'com.widevine.alpha';
+                const initDataType = 'cenc';
 
-                const mediaConfigs = initDataTypes.map((initDataType) => ([
-                    {
-                    videoCapabilities: [{ contentType: videoContentType }],
-                    persistentState: 'required',
-                    sessionTypes: ['persistent-license']
-                },
-                    {
+                const mediaConfig = {
                     initDataTypes: [initDataType],
-                    // audioCapabilities: [{ contentType: audioContentType }],
+                    audioCapabilities: [{ contentType: audioContentType }],
                     videoCapabilities: [{ contentType: videoContentType }],
-                }, ]));
-                // Последовательно проверяем каждую keySystem
-                keySystems.reduce((promiseChain, keySystem) => {
-                    return promiseChain
-                        .then(() => {
-                            return checkKeySystemSupport(keySystem, mediaConfigs);
-                        })
-                        .then((results) => {
-                            results.forEach((result) => {
-                                updateTable(
-                                    result.keySystem,
-                                    result.initDataType,
-                                    result.supported,
-                                    result.types,
-                                    result.error,
-                                );
-                            });
-                        });
-                }, Promise.resolve());
+                }
+
+                checkKeySystemSupport(keySystem, mediaConfig).then(({ supported, error, method }) => {
+                    updateTable(keySystem, initDataType, supported, error, method);
+                })
             }
-            // Функция для проверки поддержки для конкретной keySystem
-            function checkKeySystemSupport(keySystem, mediaConfigs) {
-                const promises = mediaConfigs.map(async (mediaConfig) => {
-                    try {
-                    const access = await navigator.requestMediaKeySystemAccess(keySystem, mediaConfig);
-                    const types = access.getConfiguration().sessionTypes;
-                    await access.createMediaKeys();
-                    return ({
-                            keySystem: keySystem,
-                            initDataType: mediaConfig[1].initDataTypes[0],
-                            supported: true,
-                            types
-                            });
-                    } catch (error) { 
-                        return ({
-                            keySystem: keySystem,
-                            initDataType: mediaConfig[1].initDataTypes[0],
-                            supported: false,
-                            types: '',
-                            error,
-                        })
+
+            async function checkKeySystemSupport(keySystem, mediaConfig) {
+                let acess;
+                try {
+                    access = await navigator.requestMediaKeySystemAccess(keySystem, [mediaConfig]);
+                } catch (e) {
+                    return {
+                        supported: false,
+                        error: e,
+                        method: 'requestMediaKeySystemAccess'
                     }
-                });
+                }
 
-                return Promise.all(promises);
+                try {
+                    await access.createMediaKeys();
+                } catch (e) {
+                    return {
+                        supported: false,
+                        error: e,
+                        method: 'createMediaKeys'
+                    }
+                }
+
+                return {
+                    supported: true,
+                    error: null,
+                    method: ''
+                } 
             }
 
-            function clearDRMSupport() {
-                document.getElementById('audioContentType').value = '';
-                document.getElementById('videoContentType').value = '';
-            }
+            document.addEventListener('DOMContentLoaded', checkWidevineCencDrmSupport);
 
-            document.addEventListener('DOMContentLoaded', checkDRMSupport);
-
-            function updateTable(keySystem, initDataType, supported, types, error) {
+            // render result
+            function updateTable(keySystem, initDataType, supported, error, method) {
                 const table = document.getElementById('results');
                 const row = table.insertRow(-1);
                 const keySystemCell = row.insertCell(0);
                 const initDataTypeCell = row.insertCell(1);
                 const supportedCell = row.insertCell(2);
-                const typesCell = row.insertCell(3);
+                const methodCell = row.insertCell(3);
                 const errorCell = row.insertCell(4);
                 keySystemCell.textContent = keySystem;
                 initDataTypeCell.textContent = initDataType;
                 const supportedText = supported ? 'Yes' : 'No';
                 supportedCell.textContent = supportedText;
                 const errorText = error || '';
-                errorCell.textContent = error ?? '';
-                typesCell.textContent = Array.isArray(types) ? types.join(' ,') : types;
+                errorCell.textContent = error || '-';
+                methodCell.textContent = method || '-';
 
                 if (!supported) {
                     console.error(`${keySystem}: ${initDataType}: ${supportedText}. ${errorText}`)
